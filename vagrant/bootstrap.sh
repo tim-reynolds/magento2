@@ -163,7 +163,7 @@ echo "##### INSTALLING LOG SYNCING #####"
 echo "##################################"
 apt-get install -y inotify-tools
 # Composer Installation
-sudo apt-get  install -y curl dos2unix
+sudo apt-get  install -y curl dos2unix lsyncd
 cp /vagrant/vagrant/logsync.sh /root/logsync.sh
 chmod +x /root/logsync.sh
 dos2unix /root/logsync.sh
@@ -172,6 +172,24 @@ chmod +x /etc/init.d/logsync
 dos2unix /etc/init.d/logsync
 update-rc.d logsync defaults
 /etc/init.d/logsync start
+
+cp /vagrant/vagrant/staticsync.lua /root/staticsync.lua
+chmod +x /root/staticsync.lua
+dos2unix /root/staticsync.lua
+
+cp /vagrant/vagrant/staticsync.sh /root/staticsync.sh
+chmod +x /root/staticsync.sh
+dos2unix /root/staticsync.sh
+
+
+echo "#####################################"
+echo "##### INSTALLING STATIC SYNCING #####"
+echo "#####################################"
+cp /vagrant/vagrant/staticsync /etc/init.d/staticsync
+chmod +x /etc/init.d/staticsync
+dos2unix /etc/init.d/staticsync
+update-rc.d staticsync defaults
+# NOTE: NOT STARTING IT NOW. WILL START AT THE END
 
 echo "###############################"
 echo "##### INSTALLING COMPOSER #####"
@@ -183,9 +201,11 @@ mv composer.phar /usr/local/bin/composer
 echo "#############################################"
 echo "##### SETTING OWNERSHIP AND PERMISSIONS #####"
 echo "#############################################"
-chown -R www-data /var/www/html/magento2/
-find /var/www/html/magento2/ -type d -exec chmod 700 {} \;
-find /var/www/html/magento2/ -type f -exec chmod 600 {} \;
+chown -R www-data:www-data /var/www/html/magento2/
+find /var/www/html/magento2/ -type d -exec chmod 770 {} \;
+find /var/www/html/magento2/ -type f -exec chmod 660 {} \;
+# Add vagrant user to www-data group
+usermod -a -G www-data vagrant
 
 # Install n98-magerun
 # --------------------
@@ -262,7 +282,7 @@ echo "always_populate_raw_post_data = -1"  >> /etc/php/5.6/apache2/php.ini
 cat /vagrant/vagrant/php.vagrant.ini >> /etc/php/5.6/apache2/php.ini
 cat /etc/php/5.6/apache2/php.ini | sed -s "s/128M/1024M/" > /tmp/php.ini
 rm /etc/php/5.6/apache2/php.ini
-mv /mtp/php.ini /etc/php/5.6/apache2/
+mv /tmp/php.ini /etc/php/5.6/apache2/
 
 echo "#################################################"
 echo "#### DONE FIXING PHP 5.6 DEPRECATED FEATURES ####"
@@ -317,6 +337,12 @@ echo "###########################################"
 echo "#### INSTALLING STATIC CONTENT FROM CLI ###"
 echo "###########################################"
 php ./magento setup:static-content:deploy en_US
+
+echo "#################################"
+echo "#### RSYNC OF STATIC CONTENT ####"
+echo "#################################"
+rsync -r /var/www/html/magento2/pub/static /vagrant/pub_static
+/etc/init.d/staticsync start
 
 echo "###########################################"
 echo "#### FIXING VAR PERMISSIONS IN MAGENTO ####"
