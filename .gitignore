@@ -1,3 +1,5 @@
 .idea/
 .vagrant/
 github.key
+vagrant/vagrant_logs/
+pub_static/
